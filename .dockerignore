@@ -1,0 +1,7 @@
+.git/
+smart_parking_backend/
+smart_parking_system/build/
+smart_parking_system/.dart_tool/
+smart_parking_system/android/.gradle/
+docker/mysql-init/
+*.md

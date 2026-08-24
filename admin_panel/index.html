@@ -1,0 +1,3351 @@
+<!DOCTYPE html>
+<html lang="bs">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Smart Parking - Admin Panel</title>
+
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.7.5/socket.io.min.js"></script>
+
+<style>
+  :root{
+    --bg:#0A0E1A;
+    --surface:#111827;
+    --surface-light:#1C2537;
+    --accent:#00D4FF;
+    --green:#00FF88;
+    --amber:#FFB800;
+    --red:#FF3D5A;
+    --text:#EEF2FF;
+    --text-sec:#8B9CC8;
+    --text-muted:#4A5568;
+    --border:rgba(255,255,255,0.1);
+  }
+
+  *{
+    box-sizing:border-box;
+  }
+
+  body{
+    margin:0;
+    font-family:-apple-system,Segoe UI,Roboto,Arial,sans-serif;
+    background:var(--bg);
+    color:var(--text);
+  }
+
+  a{
+    color:var(--accent);
+  }
+
+  
+  #login-screen{
+    min-height:100vh;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+  }
+
+  .login-card{
+    background:var(--surface);
+    border:1px solid var(--border);
+    border-radius:16px;
+    padding:36px;
+    width:340px;
+  }
+
+  .login-card h1{
+    font-size:20px;
+    margin:0 0 4px;
+  }
+
+  .login-card p{
+    color:var(--text-sec);
+    font-size:13px;
+    margin:0 0 24px;
+  }
+
+  input{
+    width:100%;
+    padding:12px 14px;
+    margin-bottom:12px;
+    border-radius:10px;
+    border:1px solid var(--border);
+    background:var(--surface-light);
+    color:var(--text);
+    font-size:14px;
+  }
+
+  button{
+    cursor:pointer;
+    border:none;
+    border-radius:10px;
+    padding:12px 16px;
+    font-weight:600;
+    font-size:14px;
+  }
+
+  .btn-primary{
+    background:linear-gradient(90deg,#00D4FF,#0066FF);
+    color:#fff;
+    width:100%;
+  }
+
+  .btn-secondary{
+    background:var(--surface-light);
+    color:var(--text);
+    border:1px solid var(--border);
+  }
+
+  .btn-danger{
+    background:rgba(255,61,90,0.15);
+    color:var(--red);
+    border:1px solid rgba(255,61,90,0.3);
+  }
+
+  .btn-small{
+    padding:6px 10px;
+    font-size:12px;
+    border-radius:8px;
+    margin-right:6px;
+  }
+
+  .error{
+    color:var(--red);
+    font-size:13px;
+    margin:-4px 0 12px;
+    min-height:16px;
+  }
+
+  
+  #app{
+    display:none;
+    min-height:100vh;
+    grid-template-columns:220px 1fr;
+  }
+
+  #app.active{
+    display:grid;
+  }
+
+  aside{
+    background:var(--surface);
+    border-right:1px solid var(--border);
+    padding:20px 0;
+    display:flex;
+    flex-direction:column;
+  }
+
+  aside h2{
+    font-size:16px;
+    padding:0 20px 20px;
+    margin:0;
+    border-bottom:1px solid var(--border);
+  }
+
+  aside h2 span{
+    color:var(--accent);
+  }
+
+  nav{
+    margin-top:12px;
+    flex:1;
+  }
+
+  nav button{
+    display:block;
+    width:100%;
+    text-align:left;
+    background:none;
+    color:var(--text-sec);
+    padding:12px 20px;
+    border-radius:0;
+    font-weight:500;
+  }
+
+  nav button.active{
+    color:var(--accent);
+    background:rgba(0,212,255,0.08);
+    border-left:3px solid var(--accent);
+  }
+
+  .who{
+    padding:16px 20px;
+    border-top:1px solid var(--border);
+    font-size:12px;
+    color:var(--text-muted);
+  }
+
+  main{
+    padding:28px 32px;
+    overflow-y:auto;
+    max-height:100vh;
+  }
+
+  main h1{
+    font-size:22px;
+    margin:0 0 20px;
+  }
+
+  .grid-cards{
+    display:grid;
+    grid-template-columns:repeat(auto-fit,minmax(170px,1fr));
+    gap:14px;
+    margin-bottom:28px;
+  }
+
+  .stat-card{
+    background:var(--surface);
+    border:1px solid var(--border);
+    border-radius:14px;
+    padding:18px;
+  }
+
+  .stat-card .val{
+    font-size:26px;
+    font-weight:700;
+  }
+
+  .stat-card .lbl{
+    color:var(--text-sec);
+    font-size:12px;
+    margin-top:4px;
+  }
+
+  
+  table{
+    width:100%;
+    border-collapse:collapse;
+    background:var(--surface);
+    border-radius:12px;
+    overflow:hidden;
+  }
+
+  th,td{
+    text-align:left;
+    padding:11px 14px;
+    border-bottom:1px solid var(--border);
+    font-size:13px;
+  }
+
+  th{
+    color:var(--text-sec);
+    font-weight:600;
+    background:var(--surface-light);
+  }
+
+  tr:last-child td{
+    border-bottom:none;
+  }
+
+  .pill{
+    padding:3px 9px;
+    border-radius:20px;
+    font-size:11px;
+    font-weight:600;
+  }
+
+  .pill-admin{
+    background:rgba(0,212,255,0.15);
+    color:var(--accent);
+  }
+
+  .pill-user{
+    background:var(--surface-light);
+    color:var(--text-sec);
+  }
+
+  .pill-active{
+    background:rgba(0,255,136,0.15);
+    color:var(--green);
+  }
+
+  .pill-blocked{
+    background:rgba(255,61,90,0.15);
+    color:var(--red);
+  }
+
+  
+  .toolbar{
+    display:flex;
+    gap:10px;
+    margin-bottom:16px;
+    align-items:center;
+  }
+
+  .toolbar input{
+    width:260px;
+    margin:0;
+  }
+
+  .toolbar select{
+    background:var(--surface-light);
+    color:var(--text);
+    border:1px solid var(--border);
+    border-radius:10px;
+    padding:10px 12px;
+  }
+
+  
+  #map{
+    height:340px;
+    border-radius:14px;
+    margin-bottom:22px;
+    border:1px solid var(--border);
+
+        position:relative;
+    z-index:1;
+  }
+
+  
+  .modal-bg{
+    position:fixed;
+    inset:0;
+
+        background:rgba(0,0,0,0.75);
+
+    display:none;
+    align-items:center;
+    justify-content:center;
+
+        z-index:9999;
+  }
+
+  .modal-bg.active{
+    display:flex;
+  }
+
+  .modal{
+    position:relative;
+    z-index:10000;
+
+    background:var(--surface);
+    border:1px solid var(--border);
+    border-radius:16px;
+    padding:26px;
+
+    width:380px;
+    max-width:90vw;
+    max-height:90vh;
+
+    overflow-y:auto;
+
+    box-shadow:0 20px 60px rgba(0,0,0,0.5);
+  }
+
+  .modal h3{
+    margin:0 0 16px;
+  }
+
+  .modal .row{
+    display:flex;
+    gap:10px;
+  }
+
+  .modal .row input{
+    flex:1;
+  }
+
+  
+  .toast{
+    position:fixed;
+    bottom:24px;
+    right:24px;
+    background:var(--surface-light);
+    border:1px solid var(--border);
+    padding:12px 18px;
+    border-radius:10px;
+    font-size:13px;
+    display:none;
+    z-index:20000;
+  }
+
+  .empty{
+    color:var(--text-muted);
+    font-size:13px;
+    padding:20px;
+    text-align:center;
+  }
+
+  .muted{
+    color:var(--text-muted);
+  }
+
+  
+  .live-dot{
+    display:inline-block;
+    width:8px;
+    height:8px;
+    border-radius:50%;
+    background:var(--green);
+    margin-right:6px;
+    box-shadow:0 0 0 0 rgba(0,255,136,.6);
+    animation:live-pulse 1.6s infinite;
+  }
+
+  .live-dot.off{
+    background:var(--text-muted);
+    animation:none;
+  }
+
+  @keyframes live-pulse{
+    0%{ box-shadow:0 0 0 0 rgba(0,255,136,.5); }
+    70%{ box-shadow:0 0 0 8px rgba(0,255,136,0); }
+    100%{ box-shadow:0 0 0 0 rgba(0,255,136,0); }
+  }
+
+  .live-label{
+    font-size:12px;
+    color:var(--text-sec);
+    display:flex;
+    align-items:center;
+    margin:-10px 0 18px;
+  }
+
+  .pill-nova{
+    background:rgba(255,184,0,0.15);
+    color:var(--amber);
+  }
+
+  .pill-u_obradi{
+    background:rgba(0,212,255,0.15);
+    color:var(--accent);
+  }
+
+  .pill-rijesena{
+    background:rgba(0,255,136,0.15);
+    color:var(--green);
+  }
+
+  .nav-badge{
+    background:#FF4D6A;
+    color:#fff;
+    font-size:10.5px;
+    font-weight:700;
+    border-radius:10px;
+    min-width:18px;
+    height:18px;
+    display:inline-flex;
+    align-items:center;
+    justify-content:center;
+    padding:0 5px;
+    margin-left:6px;
+  }
+
+  
+  .spot-toolbar{
+    display:flex;
+    gap:10px;
+    align-items:center;
+    margin-bottom:16px;
+    flex-wrap:wrap;
+  }
+
+  .spot-legend{
+    display:flex;
+    gap:16px;
+    font-size:12px;
+    color:var(--text-sec);
+    margin-bottom:16px;
+  }
+
+  .spot-legend span{
+    display:inline-flex;
+    align-items:center;
+    gap:6px;
+  }
+
+  .spot-legend i{
+    width:12px;
+    height:12px;
+    border-radius:4px;
+    display:inline-block;
+  }
+
+  .spot-grid{
+    display:grid;
+    grid-template-columns:repeat(auto-fill,minmax(64px,1fr));
+    gap:10px;
+    background:var(--surface);
+    border:1px solid var(--border);
+    border-radius:14px;
+    padding:20px;
+  }
+
+  .spot-box{
+    position:relative;
+    aspect-ratio:1;
+    border-radius:10px;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    font-size:13px;
+    font-weight:700;
+    background:rgba(0,255,136,0.12);
+    color:var(--green);
+    border:1px solid rgba(0,255,136,0.3);
+    cursor:default;
+  }
+
+  .spot-box.occupied{
+    background:rgba(255,61,90,0.12);
+    color:var(--red);
+    border:1px solid rgba(255,61,90,0.3);
+  }
+
+  .spot-box.reported{
+    box-shadow:0 0 0 2px var(--amber);
+  }
+
+  .spot-box.reported::after{
+    content:'⚠';
+    position:absolute;
+    top:-7px;
+    right:-7px;
+    background:var(--amber);
+    color:#111;
+    width:18px;
+    height:18px;
+    border-radius:50%;
+    font-size:11px;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+  }
+
+  .spot-box .tip{
+    display:none;
+    position:absolute;
+    bottom:110%;
+    left:50%;
+    transform:translateX(-50%);
+    background:#000;
+    color:#fff;
+    font-size:11px;
+    font-weight:400;
+    padding:6px 10px;
+    border-radius:8px;
+    white-space:nowrap;
+    z-index:5;
+  }
+
+  .spot-box:hover .tip{
+    display:block;
+  }
+
+  
+  .report-card{
+    background:var(--surface);
+    border:1px solid var(--border);
+    border-radius:14px;
+    padding:16px 18px;
+    margin-bottom:12px;
+  }
+
+  .report-card .top{
+    display:flex;
+    justify-content:space-between;
+    align-items:flex-start;
+    gap:12px;
+    margin-bottom:8px;
+  }
+
+  .report-card .meta{
+    font-size:12px;
+    color:var(--text-sec);
+    margin-bottom:8px;
+  }
+
+  .report-card .desc{
+    font-size:13px;
+    color:var(--text);
+    margin-bottom:10px;
+    line-height:1.5;
+  }
+
+  .report-card img{
+    max-width:220px;
+    border-radius:10px;
+    margin-bottom:10px;
+    display:block;
+  }
+
+  .report-card .actions{
+    display:flex;
+    gap:8px;
+    flex-wrap:wrap;
+    align-items:center;
+  }
+
+  .report-card select{
+    background:var(--surface-light);
+    color:var(--text);
+    border:1px solid var(--border);
+    border-radius:8px;
+    padding:6px 10px;
+    font-size:12px;
+  }
+
+  .report-card .response-box{
+    display:flex;
+    gap:8px;
+    margin-top:10px;
+  }
+
+  .report-card .response-box input{
+    margin:0;
+  }
+
+  
+  .chat-layout{
+    display:grid;
+    grid-template-columns:320px 1fr;
+    gap:16px;
+    height:calc(100vh - 200px);
+    min-height:420px;
+  }
+
+  .chat-threads{
+    background:var(--surface);
+    border:1px solid var(--border);
+    border-radius:14px;
+    overflow-y:auto;
+  }
+
+  .chat-thread-item{
+    padding:14px 16px;
+    border-bottom:1px solid var(--border);
+    cursor:pointer;
+    transition:background .15s;
+  }
+
+  .chat-thread-item:hover{
+    background:var(--surface-light);
+  }
+
+  .chat-thread-item.active{
+    background:var(--surface-light);
+    border-left:3px solid var(--accent);
+  }
+
+  .chat-thread-item .name{
+    font-weight:600;
+    font-size:13.5px;
+    color:var(--text);
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    gap:8px;
+  }
+
+  .chat-thread-item .parking{
+    font-size:11.5px;
+    color:var(--accent);
+    margin-top:2px;
+  }
+
+  .chat-thread-item .preview{
+    font-size:12px;
+    color:var(--text-sec);
+    margin-top:4px;
+    white-space:nowrap;
+    overflow:hidden;
+    text-overflow:ellipsis;
+  }
+
+  .chat-unread-dot{
+    background:#FF4D6A;
+    color:#fff;
+    font-size:10.5px;
+    font-weight:700;
+    border-radius:10px;
+    min-width:18px;
+    height:18px;
+    display:inline-flex;
+    align-items:center;
+    justify-content:center;
+    padding:0 5px;
+  }
+
+  .chat-thread-view{
+    background:var(--surface);
+    border:1px solid var(--border);
+    border-radius:14px;
+    display:flex;
+    flex-direction:column;
+    overflow:hidden;
+  }
+
+  .chat-empty{
+    margin:auto;
+    color:var(--text-muted);
+    font-size:13px;
+  }
+
+  .chat-thread-header{
+    padding:14px 18px;
+    border-bottom:1px solid var(--border);
+    font-weight:600;
+    font-size:14px;
+  }
+
+  .chat-thread-header .sub{
+    font-weight:400;
+    font-size:12px;
+    color:var(--text-sec);
+    margin-top:2px;
+  }
+
+  .chat-messages{
+    flex:1;
+    overflow-y:auto;
+    padding:16px 18px;
+    display:flex;
+    flex-direction:column;
+    gap:10px;
+  }
+
+  .chat-bubble{
+    max-width:72%;
+    padding:10px 14px;
+    border-radius:14px;
+    font-size:13.5px;
+    line-height:1.4;
+  }
+
+  .chat-bubble .meta{
+    font-size:10.5px;
+    opacity:.6;
+    margin-top:4px;
+  }
+
+  .chat-bubble.from-user{
+    align-self:flex-start;
+    background:var(--surface-light);
+    color:var(--text);
+    border-bottom-left-radius:4px;
+  }
+
+  .chat-bubble.from-parking{
+    align-self:flex-end;
+    background:linear-gradient(135deg, var(--accent), #0091FF);
+    color:#04151F;
+    border-bottom-right-radius:4px;
+  }
+
+  .chat-bubble.from-parking.auto{
+    background:var(--surface-light);
+    color:var(--text-sec);
+    border:1px dashed var(--border);
+  }
+
+  .chat-reply-box{
+    display:flex;
+    gap:10px;
+    padding:14px 16px;
+    border-top:1px solid var(--border);
+  }
+
+  .chat-reply-box input{
+  flex:1 1 auto;
+  width:auto;
+  min-width:0;
+  padding:11px 14px;
+  border-radius:10px;
+  border:1px solid var(--border);
+  background:var(--surface-light);
+  color:var(--text);
+  font-size:13.5px;
+}
+
+.chat-reply-box button{
+  flex:0 0 auto;
+  white-space:nowrap;
+}
+
+  @media(max-width:800px){
+    .chat-layout{
+      grid-template-columns:1fr;
+      height:auto;
+    }
+    .chat-threads{
+      max-height:240px;
+    }
+    .chat-thread-view{
+      min-height:400px;
+    }
+  }
+
+  
+  @media(max-width:800px){
+
+    #app{
+      grid-template-columns:1fr;
+    }
+
+    aside{
+      position:relative;
+      padding-bottom:10px;
+    }
+
+    nav{
+      display:flex;
+      overflow-x:auto;
+    }
+
+    nav button{
+      white-space:nowrap;
+      width:auto;
+    }
+
+    .who{
+      display:none;
+    }
+
+    main{
+      padding:20px;
+    }
+
+    table{
+      display:block;
+      overflow-x:auto;
+    }
+
+    .modal{
+      width:90%;
+    }
+  }
+</style>
+</head>
+
+<body>
+
+
+<div id="login-screen">
+
+  <div class="login-card">
+
+    <h1>🅿️ Smart Parking</h1>
+
+    <p>
+      Admin panel - prijava samo za administratore
+    </p>
+
+    <input
+      id="login-email"
+      type="email"
+      placeholder="Email"
+      value="admin@smartparking.ba"
+    >
+
+    <input
+      id="login-pass"
+      type="password"
+      placeholder="Lozinka"
+    >
+
+    <div class="error" id="login-error"></div>
+
+    <button class="btn-primary" onclick="login()">
+      Prijavi se
+    </button>
+
+    <p
+      style="margin-top:14px; font-size:11px; opacity:.55; text-align:center;">
+      Server: <span id="login-api-base"></span>
+      · <a href="#" onclick="_changeApiBase(); return false;" style="color:inherit;">promijeni</a>
+    </p>
+
+  </div>
+
+</div>
+
+
+<div id="app">
+
+  <aside>
+
+    <h2>
+      🅿️ Smart<span>Parking</span>
+    </h2>
+
+    <nav>
+
+      <button
+        data-tab="dashboard"
+        data-role="admin,manager"
+        class="active"
+        onclick="showTab('dashboard')">
+        📊 Pregled
+      </button>
+
+      <button
+        data-tab="users"
+        data-role="admin"
+        onclick="showTab('users')">
+        👤 Korisnici
+      </button>
+
+      <button
+        data-tab="parkings"
+        data-role="admin"
+        onclick="showTab('parkings')">
+        🅿️ Parkinzi
+      </button>
+
+      <button
+        data-tab="managers"
+        data-role="admin"
+        onclick="showTab('managers')">
+        🧑‍💼 Upravnici
+      </button>
+
+      <button
+        data-tab="spotmap"
+        data-role="admin,manager"
+        onclick="showTab('spotmap')">
+        🗺️ Mapa mjesta
+      </button>
+
+      <button
+        data-tab="reports"
+        data-role="admin,manager"
+        onclick="showTab('reports')">
+        ⚠️ Prijave <span id="reports-open-badge" class="nav-badge" style="display:none;"></span>
+      </button>
+
+      <button
+        data-tab="audit"
+        data-role="admin"
+        onclick="showTab('audit')">
+        📜 Audit Log
+      </button>
+
+      <button
+        data-tab="chat"
+        data-role="admin,manager"
+        onclick="showTab('chat')">
+        💬 Chat <span id="chat-unread-badge" class="nav-badge" style="display:none;"></span>
+      </button>
+
+    </nav>
+
+    <div class="who">
+
+      <span id="live-status" class="live-label" style="margin:0 0 8px;">
+        <span class="live-dot off" id="live-dot"></span>
+        <span id="live-text">Povezivanje...</span>
+      </span>
+
+      Prijavljen kao<br>
+
+      <b
+        id="who-email"
+        style="color:var(--text)">
+      </b>
+
+      <br>
+
+      <span id="who-role" style="color:var(--accent);"></span>
+
+      <br>
+
+      <a
+        href="#"
+        onclick="logout();return false;">
+        Odjava
+      </a>
+
+    </div>
+
+  </aside>
+
+
+  <main>
+
+    
+    <section id="tab-dashboard">
+
+      <h1 id="dashboard-title">Pregled sistema</h1>
+
+      <div
+        class="grid-cards"
+        id="dashboard-cards">
+      </div>
+
+      <h1 id="dashboard-secondary-title" style="font-size:16px;">
+        Posljednje akcije
+      </h1>
+
+      <table id="dashboard-recent-table">
+
+        <thead>
+          <tr>
+            <th>Vrijeme</th>
+            <th>Korisnik</th>
+            <th>Akcija</th>
+          </tr>
+        </thead>
+
+        <tbody id="dashboard-recent"></tbody>
+
+      </table>
+
+    </section>
+
+
+    <section
+      id="tab-users"
+      style="display:none;">
+
+      <h1>
+        Registrovani korisnici
+      </h1>
+
+      <div class="toolbar">
+
+        <input
+          id="user-search"
+          placeholder="Pretraga po imenu ili emailu..."
+          oninput="loadUsers()"
+        >
+
+      </div>
+
+      <table>
+
+        <thead>
+
+          <tr>
+            <th>Ime</th>
+            <th>Email</th>
+            <th>Telefon</th>
+            <th>Rola</th>
+            <th>Status</th>
+            <th>Rezervacije</th>
+            <th>Registrovan</th>
+            <th>Akcije</th>
+          </tr>
+
+        </thead>
+
+        <tbody id="users-table"></tbody>
+
+      </table>
+
+    </section>
+
+
+    <section
+      id="tab-parkings"
+      style="display:none;">
+
+      <h1>
+        Parkinzi
+      </h1>
+
+      <div id="map"></div>
+
+      <div class="toolbar">
+
+        <button
+          class="btn-primary"
+          style="width:auto;"
+          onclick="openParkingModal()">
+          + Dodaj parking
+        </button>
+
+      </div>
+
+      <table>
+
+        <thead>
+
+          <tr>
+            <th>Naziv</th>
+            <th>Adresa</th>
+            <th>Kapacitet</th>
+            <th>Slobodno</th>
+            <th>Cijena/h</th>
+            <th>Radno vrijeme</th>
+            <th>Status</th>
+            <th>Akcije</th>
+          </tr>
+
+        </thead>
+
+        <tbody id="parkings-table"></tbody>
+
+      </table>
+
+    </section>
+
+
+    <section
+      id="tab-audit"
+      style="display:none;">
+
+      <h1>
+        Audit log
+      </h1>
+
+      <div class="toolbar">
+
+        <select
+          id="audit-filter"
+          onchange="loadAudit()">
+
+          <option value="">
+            Sve akcije
+          </option>
+
+          <option value="login">
+            login
+          </option>
+
+          <option value="login_failed">
+            login_failed
+          </option>
+
+          <option value="register">
+            register
+          </option>
+
+          <option value="reservation_create">
+            reservation_create
+          </option>
+
+          <option value="reservation_cancel">
+            reservation_cancel
+          </option>
+
+          <option value="admin_user_update">
+            admin_user_update
+          </option>
+
+          <option value="admin_parking_create">
+            admin_parking_create
+          </option>
+
+          <option value="admin_parking_update">
+            admin_parking_update
+          </option>
+
+          <option value="admin_parking_delete">
+            admin_parking_delete
+          </option>
+
+        </select>
+
+      </div>
+
+      <table>
+
+        <thead>
+
+          <tr>
+            <th>Vrijeme</th>
+            <th>Korisnik</th>
+            <th>Akcija</th>
+            <th>Detalji</th>
+            <th>IP</th>
+          </tr>
+
+        </thead>
+
+        <tbody id="audit-table"></tbody>
+
+      </table>
+
+    </section>
+
+
+    <section
+      id="tab-chat"
+      style="display:none;">
+
+      <h1 id="chat-title">
+        Chat sa korisnicima
+      </h1>
+
+      <p id="chat-subtitle" style="opacity:.6; font-size:13px; margin-top:-8px;">
+        Ovdje admin vidi SVE poruke koje su korisnici poslali iz aplikacije
+        (po parkingu) i može im stvarno odgovoriti — odgovor stiže
+        korisniku istog trena preko notifikacija.
+      </p>
+
+      <div class="chat-layout">
+
+        <div class="chat-threads" id="chat-threads">
+                  </div>
+
+        <div class="chat-thread-view" id="chat-thread-view">
+          <div class="chat-empty">
+            Odaberi razgovor sa lijeve strane
+          </div>
+        </div>
+
+      </div>
+
+    </section>
+
+
+    <section
+      id="tab-spotmap"
+      style="display:none;">
+
+      <h1 id="spotmap-title">Mapa mjesta</h1>
+
+      <p style="opacity:.6; font-size:13px; margin-top:-8px;">
+        Vizuelni prikaz svih mjesta na parkingu — zeleno je slobodno, crveno
+        zauzeto. Žuti krug ⚠ označava mjesto na kojem je prijavljen problem.
+      </p>
+
+      <div class="spot-toolbar" id="spotmap-toolbar">
+              </div>
+
+      <div class="spot-legend">
+        <span><i style="background:rgba(0,255,136,.4);border:1px solid var(--green);"></i> Slobodno</span>
+        <span><i style="background:rgba(255,61,90,.4);border:1px solid var(--red);"></i> Zauzeto</span>
+        <span><i style="background:transparent;border:2px solid var(--amber);"></i> Prijavljen problem</span>
+      </div>
+
+      <div class="spot-grid" id="spot-grid">
+        <div class="empty">Učitavanje...</div>
+      </div>
+
+    </section>
+
+
+    <section
+      id="tab-reports"
+      style="display:none;">
+
+      <h1 id="reports-title">Prijave problema</h1>
+
+      <div class="toolbar" id="reports-toolbar">
+
+        <select id="reports-status-filter" onchange="loadReports()">
+          <option value="">Svi statusi</option>
+          <option value="nova">Nova</option>
+          <option value="u_obradi">U obradi</option>
+          <option value="rijesena">Riješena</option>
+        </select>
+
+        <select id="reports-parking-filter" onchange="loadReports()" style="display:none;">
+          <option value="">Svi parkinzi</option>
+        </select>
+
+      </div>
+
+      <div id="reports-list">
+        <div class="empty">Učitavanje...</div>
+      </div>
+
+    </section>
+
+
+    <section
+      id="tab-managers"
+      style="display:none;">
+
+      <h1>Upravnici parkinga</h1>
+
+      <p style="opacity:.6; font-size:13px; margin-top:-8px;">
+        Svaki parking može imati svog upravnika sa nalogom koji vidi i
+        odgovara na chat/prijave SAMO za taj parking, uživo.
+      </p>
+
+      <div class="toolbar">
+        <button class="btn-primary" style="width:auto;" onclick="openManagerModal()">
+          + Dodaj upravnika
+        </button>
+      </div>
+
+      <table>
+        <thead>
+          <tr>
+            <th>Ime</th>
+            <th>Email</th>
+            <th>Parking</th>
+            <th>Status</th>
+            <th>Kreiran</th>
+            <th>Akcije</th>
+          </tr>
+        </thead>
+        <tbody id="managers-table"></tbody>
+      </table>
+
+    </section>
+
+  </main>
+
+</div>
+
+
+<div
+  class="modal-bg"
+  id="parking-modal">
+
+  <div class="modal">
+
+    <h3 id="parking-modal-title">
+      Novi parking
+    </h3>
+
+    <input
+      type="hidden"
+      id="pm-id"
+    >
+
+    <input
+      id="pm-naziv"
+      placeholder="Naziv parkinga"
+    >
+
+    <input
+      id="pm-adresa"
+      placeholder="Adresa"
+    >
+
+    <div class="row">
+
+      <input
+        id="pm-lat"
+        placeholder="Lat (npr. 43.8563)"
+      >
+
+      <input
+        id="pm-lng"
+        placeholder="Lng (npr. 18.4131)"
+      >
+
+    </div>
+
+    <div class="row">
+
+      <input
+        id="pm-total"
+        type="number"
+        placeholder="Ukupno mjesta"
+      >
+
+      <input
+        id="pm-price"
+        type="number"
+        step="0.1"
+        placeholder="Cijena/h (KM)"
+      >
+
+    </div>
+
+    <input
+      id="pm-radno"
+      placeholder="Radno vrijeme (npr. 00:00 - 24:00)"
+      value="00:00 - 24:00"
+    >
+
+    <div
+      class="row"
+      style="margin-top:8px;">
+
+      <button
+        class="btn-secondary"
+        style="flex:1;"
+        onclick="closeParkingModal()">
+        Otkaži
+      </button>
+
+      <button
+        class="btn-primary"
+        style="flex:1;"
+        onclick="saveParking()">
+        Sačuvaj
+      </button>
+
+    </div>
+
+  </div>
+
+</div>
+
+
+<div
+  class="modal-bg"
+  id="manager-modal">
+
+  <div class="modal">
+
+    <h3 id="manager-modal-title">Novi upravnik</h3>
+
+    <input type="hidden" id="mm-id">
+
+    <div class="row">
+      <input id="mm-ime" placeholder="Ime">
+      <input id="mm-prezime" placeholder="Prezime">
+    </div>
+
+    <input id="mm-email" type="email" placeholder="Email">
+    <input id="mm-telefon" placeholder="Telefon (opciono)">
+    <input id="mm-lozinka" type="password" placeholder="Lozinka">
+    <p id="mm-lozinka-hint" style="font-size:11px;color:var(--text-muted);margin:-8px 0 12px;">
+      Ostavi prazno da zadržiš postojeću lozinku.
+    </p>
+
+    <select id="mm-parking" style="width:100%;margin-bottom:12px;">
+    </select>
+
+    <select id="mm-status" style="width:100%;margin-bottom:12px;display:none;">
+      <option value="active">Aktivan</option>
+      <option value="blocked">Blokiran</option>
+    </select>
+
+    <div class="row" style="margin-top:8px;">
+      <button class="btn-secondary" style="flex:1;" onclick="closeManagerModal()">Otkaži</button>
+      <button class="btn-primary" style="flex:1;" onclick="saveManager()">Sačuvaj</button>
+    </div>
+
+  </div>
+
+</div>
+
+
+<div
+  class="toast"
+  id="toast">
+</div>
+
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+<script>
+
+
+const _urlParams =
+  new URLSearchParams(window.location.search);
+
+const _apiFromUrl =
+  _urlParams.get('api');
+
+function _sanitizeApiBase(v){
+  if(!v) return v;
+  return v.trim().replace(/[`'"\s]+$/g, '').replace(/^[`'"\s]+/g, '');
+}
+
+if(_apiFromUrl){
+  localStorage.setItem(
+    'sp_admin_api_base',
+    _sanitizeApiBase(_apiFromUrl)
+  );
+}
+
+const API_BASE =
+  _sanitizeApiBase(localStorage.getItem('sp_admin_api_base')) ||
+  'http://localhost:5000/api';
+
+window.addEventListener('DOMContentLoaded', () => {
+  const el = document.getElementById('login-api-base');
+  if (el) el.textContent = API_BASE;
+});
+
+function _changeApiBase(){
+  const current = API_BASE;
+  const next = window.prompt('API server URL (npr. http://localhost:5000/api):', current);
+  if (next && next.trim()) {
+    localStorage.setItem('sp_admin_api_base', _sanitizeApiBase(next));
+    window.location.reload();
+  }
+}
+
+
+let TOKEN =
+  localStorage.getItem('sp_admin_token') || null;
+
+let ME =
+  JSON.parse(
+    localStorage.getItem('sp_admin_user') || 'null'
+  );
+
+let leafletMap = null;
+
+let mapMarkers = [];
+
+let SOCKET = null;
+
+
+function _socketBase(){
+  return API_BASE.replace(/\/api\/?$/, '');
+}
+
+function connectSocket(){
+
+  if(!ME) return;
+
+  disconnectSocket();
+
+  SOCKET = io(_socketBase() + '/ws/notifications', {
+    transports: ['websocket'],
+  });
+
+  SOCKET.on('connect', () => {
+    SOCKET.emit('authenticate', {
+      user_id: ME.id,
+      role: ME.role,
+      parking_id: ME.parking_id || null,
+    });
+    document.getElementById('live-dot').classList.remove('off');
+    document.getElementById('live-text').textContent = 'Uživo povezano';
+  });
+
+  SOCKET.on('disconnect', () => {
+    document.getElementById('live-dot').classList.add('off');
+    document.getElementById('live-text').textContent = 'Nije povezano';
+  });
+
+  SOCKET.on('chat_message', (payload) => {
+
+    toast(`💬 Nova poruka — ${payload.user_ime || 'korisnik'} (${payload.parking_naziv || ''})`);
+
+    const chatVisible =
+      document.getElementById('tab-chat').style.display !== 'none';
+
+    if(chatVisible){
+      loadChatThreads();
+      if(_currentChatUser === payload.user_id &&
+         (ME.role === 'manager' || _currentChatParking === payload.parking_id)){
+        openChatThread(payload.user_id, payload.parking_id);
+      }
+    } else {
+      _bumpChatBadge();
+    }
+
+  });
+
+  SOCKET.on('new_report', (payload) => {
+
+    toast(`⚠️ Nova prijava — ${payload.parking_naziv || ''}${payload.report?.spot_number ? ' (mjesto ' + payload.report.spot_number + ')' : ''}`);
+
+    const reportsVisible =
+      document.getElementById('tab-reports').style.display !== 'none';
+    const spotmapVisible =
+      document.getElementById('tab-spotmap').style.display !== 'none';
+
+    if(reportsVisible) loadReports();
+    else _bumpReportsBadge();
+
+    if(spotmapVisible) loadSpotMap();
+
+  });
+
+}
+
+function disconnectSocket(){
+  if(SOCKET){
+    SOCKET.disconnect();
+    SOCKET = null;
+  }
+}
+
+let _reportsOpenCount = 0;
+let _chatUnreadCount = 0;
+
+function _updateReportsBadge(n){
+  _reportsOpenCount = n;
+  const el = document.getElementById('reports-open-badge');
+  if(n > 0){ el.textContent = n; el.style.display = 'inline-flex'; }
+  else el.style.display = 'none';
+}
+
+function _bumpReportsBadge(){
+  _updateReportsBadge(_reportsOpenCount + 1);
+}
+
+function _updateChatBadge(n){
+  _chatUnreadCount = n;
+  const el = document.getElementById('chat-unread-badge');
+  if(n > 0){ el.textContent = n; el.style.display = 'inline-flex'; }
+  else el.style.display = 'none';
+}
+
+function _bumpChatBadge(){
+  _updateChatBadge(_chatUnreadCount + 1);
+}
+
+
+function toast(msg){
+
+  const t =
+    document.getElementById('toast');
+
+  t.textContent = msg;
+
+  t.style.display = 'block';
+
+  setTimeout(() => {
+    t.style.display = 'none';
+  }, 2500);
+
+}
+
+
+async function api(path, opts={}){
+
+  const res =
+    await fetch(API_BASE + path, {
+
+      ...opts,
+
+      headers: {
+
+        'Content-Type':
+          'application/json',
+
+        ...(TOKEN
+          ? {
+              'Authorization':
+                'Bearer ' + TOKEN
+            }
+          : {}),
+
+        ...(opts.headers || {}),
+
+      },
+
+    });
+
+
+  const data =
+    await res.json().catch(() => ({}));
+
+
+  if(res.status === 401){
+
+    logout();
+
+    toast(
+      'Sesija je istekla - prijavi se ponovo.'
+    );
+
+    throw new Error(
+      'Sesija je istekla'
+    );
+
+  }
+
+
+  if(!res.ok){
+
+    throw new Error(
+      data.error ||
+      ('Greška ' + res.status)
+    );
+
+  }
+
+
+  return data;
+
+}
+
+
+async function login(){
+
+  const email =
+    document
+      .getElementById('login-email')
+      .value
+      .trim();
+
+  const pass =
+    document
+      .getElementById('login-pass')
+      .value;
+
+  const errEl =
+    document.getElementById('login-error');
+
+  errEl.textContent = '';
+
+
+  try{
+
+    const data =
+      await api(
+        '/auth/login',
+        {
+          method:'POST',
+
+          body:
+            JSON.stringify({
+              email,
+              lozinka:pass
+            })
+        }
+      );
+
+
+    if(!['admin','manager'].includes(data.user.role)){
+
+      errEl.textContent =
+        'Ovaj nalog nema administratorska/upravnička prava.';
+
+      return;
+
+    }
+
+
+    TOKEN =
+      data.access_token;
+
+    ME =
+      data.user;
+
+
+    localStorage.setItem(
+      'sp_admin_token',
+      TOKEN
+    );
+
+    localStorage.setItem(
+      'sp_admin_user',
+      JSON.stringify(ME)
+    );
+
+
+    boot();
+
+  }
+  catch(e){
+
+    errEl.textContent =
+      e.message;
+
+  }
+
+}
+
+
+function logout(){
+
+  TOKEN = null;
+
+  ME = null;
+
+  localStorage.removeItem(
+    'sp_admin_token'
+  );
+
+  localStorage.removeItem(
+    'sp_admin_user'
+  );
+
+  disconnectSocket();
+
+  document
+    .getElementById('app')
+    .classList
+    .remove('active');
+
+
+  document
+    .getElementById('login-screen')
+    .style
+    .display = 'flex';
+
+}
+
+
+function boot(){
+
+  document
+    .getElementById('login-screen')
+    .style
+    .display = 'none';
+
+
+  document
+    .getElementById('app')
+    .classList
+    .add('active');
+
+
+  document
+    .getElementById('who-email')
+    .textContent = ME.email;
+
+  document
+    .getElementById('who-role')
+    .textContent =
+      ME.role === 'manager'
+      ? `Upravnik${ME.parking_naziv ? ' — ' + ME.parking_naziv : ''}`
+      : 'Administrator';
+
+
+  document
+    .querySelectorAll('nav button[data-role]')
+    .forEach(b => {
+      const roles = b.dataset.role.split(',');
+      b.style.display = roles.includes(ME.role) ? '' : 'none';
+    });
+
+
+  connectSocket();
+
+  showTab('dashboard');
+
+}
+
+
+function showTab(name){
+
+  document
+    .querySelectorAll('nav button')
+    .forEach(b => {
+
+      b.classList.toggle(
+        'active',
+        b.dataset.tab === name
+      );
+
+    });
+
+
+  [
+    'dashboard',
+    'users',
+    'parkings',
+    'managers',
+    'spotmap',
+    'reports',
+    'audit',
+    'chat'
+  ].forEach(t => {
+
+    document
+      .getElementById('tab-' + t)
+      .style
+      .display =
+        (t === name)
+        ? 'block'
+        : 'none';
+
+  });
+
+
+  if(name === 'dashboard')
+    loadDashboard();
+
+  if(name === 'users')
+    loadUsers();
+
+  if(name === 'parkings')
+    loadParkings();
+
+  if(name === 'managers')
+    loadManagers();
+
+  if(name === 'spotmap')
+    loadSpotMap();
+
+  if(name === 'reports')
+    loadReports();
+
+  if(name === 'audit')
+    loadAudit();
+
+  if(name === 'chat')
+    loadChatThreads();
+
+}
+
+
+async function loadDashboard(){
+
+  if(ME.role === 'manager'){
+    await loadManagerDashboard();
+    return;
+  }
+
+  try{
+
+    document.getElementById('dashboard-title').textContent = 'Pregled sistema';
+    document.getElementById('dashboard-secondary-title').style.display = '';
+    document.getElementById('dashboard-recent-table').style.display = '';
+
+    const d =
+      await api('/admin/dashboard');
+
+
+    document
+      .getElementById('dashboard-cards')
+      .innerHTML = `
+
+        <div class="stat-card">
+          <div class="val">
+            ${d.users_count}
+          </div>
+          <div class="lbl">
+            Registrovanih korisnika
+          </div>
+        </div>
+
+        <div class="stat-card">
+          <div class="val">
+            ${d.parkings_count}
+          </div>
+          <div class="lbl">
+            Aktivnih parkinga
+          </div>
+        </div>
+
+        <div class="stat-card">
+          <div class="val">
+            ${d.reservations_today}
+          </div>
+          <div class="lbl">
+            Rezervacija danas
+          </div>
+        </div>
+
+        <div class="stat-card">
+          <div class="val">
+            ${d.free_spots}/${d.total_spots}
+          </div>
+          <div class="lbl">
+            Slobodnih mjesta
+          </div>
+        </div>
+
+        <div class="stat-card">
+          <div class="val">
+            ${d.occupancy_pct}%
+          </div>
+          <div class="lbl">
+            Popunjenost sistema
+          </div>
+        </div>
+
+      `;
+
+
+    document
+      .getElementById('dashboard-recent')
+      .innerHTML =
+      d.recent_actions.length
+
+      ? d.recent_actions
+          .map(a => `
+
+            <tr>
+
+              <td>
+                ${fmtDate(a.created_at)}
+              </td>
+
+              <td>
+                ${a.actor_email || '—'}
+              </td>
+
+              <td>
+                ${a.action}
+              </td>
+
+            </tr>
+
+          `)
+          .join('')
+
+      : `
+
+          <tr>
+            <td
+              colspan="3"
+              class="empty">
+              Nema zabilježenih akcija
+            </td>
+          </tr>
+
+        `;
+
+  }
+  catch(e){
+
+    toast(e.message);
+
+  }
+
+}
+
+
+async function loadManagerDashboard(){
+
+  try{
+
+    document.getElementById('dashboard-secondary-title').style.display = 'none';
+    document.getElementById('dashboard-recent-table').style.display = 'none';
+
+    const d = await api('/manager/dashboard');
+    const p = d.parking;
+
+    document.getElementById('dashboard-title').textContent =
+      `Pregled — ${p.naziv}`;
+
+    document
+      .getElementById('dashboard-cards')
+      .innerHTML = `
+
+        <div class="stat-card">
+          <div class="val">${p.available_spots}/${p.total_spots}</div>
+          <div class="lbl">Slobodnih mjesta</div>
+        </div>
+
+        <div class="stat-card">
+          <div class="val">${p.occupancy_pct}%</div>
+          <div class="lbl">Popunjenost</div>
+        </div>
+
+        <div class="stat-card">
+          <div class="val">${d.reservations_today}</div>
+          <div class="lbl">Rezervacija danas</div>
+        </div>
+
+        <div class="stat-card">
+          <div class="val">${d.open_reports}</div>
+          <div class="lbl">Otvorenih prijava</div>
+        </div>
+
+        <div class="stat-card">
+          <div class="val">${d.unread_chat}</div>
+          <div class="lbl">Nepročitanih poruka</div>
+        </div>
+
+      `;
+
+    _updateReportsBadge(d.open_reports);
+    _updateChatBadge(d.unread_chat);
+
+  }
+  catch(e){
+
+    toast(e.message);
+
+  }
+
+}
+
+
+async function loadUsers(){
+
+  try{
+
+    const q =
+      document
+        .getElementById('user-search')
+        .value
+        .trim();
+
+
+    const users =
+      await api(
+        '/admin/users' +
+        (
+          q
+          ? `?q=${encodeURIComponent(q)}`
+          : ''
+        )
+      );
+
+
+    document
+      .getElementById('users-table')
+      .innerHTML =
+
+      users.length
+
+      ? users.map(u => `
+
+          <tr>
+
+            <td>
+              ${u.ime} ${u.prezime}
+            </td>
+
+            <td>
+              ${u.email}
+            </td>
+
+            <td>
+              ${u.telefon || '—'}
+            </td>
+
+            <td>
+
+              <span
+                class="pill ${
+                  u.role === 'admin'
+                  ? 'pill-admin'
+                  : 'pill-user'
+                }">
+
+                ${u.role}
+
+              </span>
+
+            </td>
+
+            <td>
+
+              <span
+                class="pill ${
+                  u.status === 'active'
+                  ? 'pill-active'
+                  : 'pill-blocked'
+                }">
+
+                ${u.status}
+
+              </span>
+
+            </td>
+
+            <td>
+              ${u.reservations_count}
+            </td>
+
+            <td>
+              ${fmtDate(u.created_at)}
+            </td>
+
+            <td>
+
+              <button
+                class="btn-small btn-secondary"
+                onclick="toggleRole(${u.id}, '${u.role}')">
+
+                ${
+                  u.role === 'admin'
+                  ? 'Ukloni admin'
+                  : 'Postavi za admina'
+                }
+
+              </button>
+
+
+              <button
+                class="btn-small ${
+                  u.status === 'active'
+                  ? 'btn-danger'
+                  : 'btn-secondary'
+                }"
+                onclick="toggleStatus(${u.id}, '${u.status}')">
+
+                ${
+                  u.status === 'active'
+                  ? 'Blokiraj'
+                  : 'Odblokiraj'
+                }
+
+              </button>
+
+            </td>
+
+          </tr>
+
+        `).join('')
+
+      : `
+
+          <tr>
+
+            <td
+              colspan="8"
+              class="empty">
+
+              Nema korisnika
+
+            </td>
+
+          </tr>
+
+        `;
+
+  }
+  catch(e){
+
+    toast(e.message);
+
+  }
+
+}
+
+
+async function toggleRole(
+  id,
+  currentRole
+){
+
+  const newRole =
+    currentRole === 'admin'
+    ? 'user'
+    : 'admin';
+
+
+  try{
+
+    await api(
+      `/admin/users/${id}`,
+      {
+        method:'PUT',
+
+        body:
+          JSON.stringify({
+            role:newRole
+          })
+      }
+    );
+
+
+    toast('Rola ažurirana');
+
+    loadUsers();
+
+  }
+  catch(e){
+
+    toast(e.message);
+
+  }
+
+}
+
+
+async function toggleStatus(
+  id,
+  currentStatus
+){
+
+  const newStatus =
+    currentStatus === 'active'
+    ? 'blocked'
+    : 'active';
+
+
+  try{
+
+    await api(
+      `/admin/users/${id}`,
+      {
+        method:'PUT',
+
+        body:
+          JSON.stringify({
+            status:newStatus
+          })
+      }
+    );
+
+
+    toast('Status ažuriran');
+
+    loadUsers();
+
+  }
+  catch(e){
+
+    toast(e.message);
+
+  }
+
+}
+
+
+async function loadParkings(){
+
+  try{
+
+    const parkings =
+      await api('/admin/parkings');
+
+
+    document
+      .getElementById('parkings-table')
+      .innerHTML =
+
+      parkings.length
+
+      ? parkings.map(p => `
+
+          <tr>
+
+            <td>
+              ${p.naziv}
+            </td>
+
+            <td>
+              ${p.adresa || '—'}
+            </td>
+
+            <td>
+              ${p.total_spots}
+            </td>
+
+            <td>
+              ${p.available_spots}
+            </td>
+
+            <td>
+              ${Number(
+                p.price_per_hour
+              ).toFixed(2)} KM
+            </td>
+
+            <td>
+              ${p.radno_vrijeme}
+            </td>
+
+            <td>
+
+              <span
+                class="pill ${
+                  p.aktivno
+                  ? 'pill-active'
+                  : 'pill-blocked'
+                }">
+
+                ${
+                  p.aktivno
+                  ? 'aktivan'
+                  : 'neaktivan'
+                }
+
+              </span>
+
+            </td>
+
+            <td>
+
+              <button
+                class="btn-small btn-secondary"
+                onclick='openParkingModal(${JSON.stringify(p)})'>
+
+                Uredi
+
+              </button>
+
+
+              <button
+                class="btn-small btn-danger"
+                onclick="deleteParking(${p.id})">
+
+                Deaktiviraj
+
+              </button>
+
+            </td>
+
+          </tr>
+
+        `).join('')
+
+      : `
+
+          <tr>
+
+            <td
+              colspan="8"
+              class="empty">
+
+              Nema parkinga
+
+            </td>
+
+          </tr>
+
+        `;
+
+
+    renderMap(parkings);
+
+  }
+  catch(e){
+
+    toast(e.message);
+
+  }
+
+}
+
+
+function renderMap(parkings){
+
+  if(!leafletMap){
+
+    leafletMap =
+      L.map('map')
+       .setView(
+         [43.8563,18.4131],
+         13
+       );
+
+
+    L.tileLayer(
+      'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+      {
+        attribution:
+          '&copy; OpenStreetMap contributors'
+      }
+    ).addTo(leafletMap);
+
+  }
+
+
+  mapMarkers.forEach(
+    m => leafletMap.removeLayer(m)
+  );
+
+
+  mapMarkers =
+    parkings.map(p => {
+
+      const pct =
+        p.total_spots
+        ? Math.round(
+            100 *
+            (
+              p.total_spots -
+              p.available_spots
+            ) /
+            p.total_spots
+          )
+        : 0;
+
+
+      const color =
+        pct > 90
+        ? '#FF3D5A'
+        : pct > 60
+        ? '#FFB800'
+        : '#00FF88';
+
+
+      const marker =
+        L.circleMarker(
+          [p.lat,p.lng],
+          {
+            radius:9,
+            color:color,
+            fillColor:color,
+            fillOpacity:0.8
+          }
+        )
+        .addTo(leafletMap)
+        .bindPopup(`
+
+          <b>${p.naziv}</b>
+          <br>
+          ${p.available_spots}/${p.total_spots}
+          slobodno
+          <br>
+          ${pct}% popunjenost
+
+        `);
+
+
+      return marker;
+
+    });
+
+}
+
+
+function openParkingModal(p){
+
+  document
+    .getElementById('parking-modal-title')
+    .textContent =
+      p
+      ? 'Uredi parking'
+      : 'Novi parking';
+
+
+  document
+    .getElementById('pm-id')
+    .value =
+      p ? p.id : '';
+
+
+  document
+    .getElementById('pm-naziv')
+    .value =
+      p ? p.naziv : '';
+
+
+  document
+    .getElementById('pm-adresa')
+    .value =
+      p ? (p.adresa || '') : '';
+
+
+  document
+    .getElementById('pm-lat')
+    .value =
+      p ? p.lat : '';
+
+
+  document
+    .getElementById('pm-lng')
+    .value =
+      p ? p.lng : '';
+
+
+  document
+    .getElementById('pm-total')
+    .value =
+      p ? p.total_spots : '';
+
+
+  document
+    .getElementById('pm-price')
+    .value =
+      p ? p.price_per_hour : '';
+
+
+  document
+    .getElementById('pm-radno')
+    .value =
+      p
+      ? p.radno_vrijeme
+      : '00:00 - 24:00';
+
+
+    document
+    .getElementById('parking-modal')
+    .classList
+    .add('active');
+
+}
+
+
+function closeParkingModal(){
+
+  document
+    .getElementById('parking-modal')
+    .classList
+    .remove('active');
+
+}
+
+
+async function saveParking(){
+
+  const id =
+    document
+      .getElementById('pm-id')
+      .value;
+
+
+  const payload = {
+
+    naziv:
+      document
+        .getElementById('pm-naziv')
+        .value
+        .trim(),
+
+    adresa:
+      document
+        .getElementById('pm-adresa')
+        .value
+        .trim(),
+
+    lat:
+      parseFloat(
+        document
+          .getElementById('pm-lat')
+          .value
+      ),
+
+    lng:
+      parseFloat(
+        document
+          .getElementById('pm-lng')
+          .value
+      ),
+
+    total_spots:
+      parseInt(
+        document
+          .getElementById('pm-total')
+          .value,
+        10
+      ),
+
+    price_per_hour:
+      parseFloat(
+        document
+          .getElementById('pm-price')
+          .value
+      ),
+
+    radno_vrijeme:
+      document
+        .getElementById('pm-radno')
+        .value
+        .trim(),
+
+  };
+
+
+  if(
+    !payload.naziv ||
+    isNaN(payload.lat) ||
+    isNaN(payload.lng) ||
+    !payload.total_spots ||
+    isNaN(payload.price_per_hour)
+  ){
+
+    toast(
+      'Popuni sva obavezna polja ispravno'
+    );
+
+    return;
+
+  }
+
+
+  try{
+
+    if(id){
+
+      await api(
+        `/admin/parkings/${id}`,
+        {
+          method:'PUT',
+
+          body:
+            JSON.stringify(payload)
+        }
+      );
+
+    }
+    else{
+
+      payload.available_spots =
+        payload.total_spots;
+
+
+      await api(
+        '/admin/parkings',
+        {
+          method:'POST',
+
+          body:
+            JSON.stringify(payload)
+        }
+      );
+
+    }
+
+
+    toast(
+      'Parking sačuvan'
+    );
+
+
+    closeParkingModal();
+
+    loadParkings();
+
+  }
+  catch(e){
+
+    toast(e.message);
+
+  }
+
+}
+
+
+async function deleteParking(id){
+
+  if(
+    !confirm(
+      'Deaktivirati ovaj parking?'
+    )
+  ){
+
+    return;
+
+  }
+
+
+  try{
+
+    await api(
+      `/admin/parkings/${id}`,
+      {
+        method:'DELETE'
+      }
+    );
+
+
+    toast(
+      'Parking deaktiviran'
+    );
+
+    loadParkings();
+
+  }
+  catch(e){
+
+    toast(e.message);
+
+  }
+
+}
+
+
+async function loadAudit(){
+
+  try{
+
+    const filter =
+      document
+        .getElementById('audit-filter')
+        .value;
+
+
+    const logs =
+      await api(
+        '/admin/audit-log' +
+        (
+          filter
+          ? `?action=${filter}`
+          : ''
+        )
+      );
+
+
+    document
+      .getElementById('audit-table')
+      .innerHTML =
+
+      logs.length
+
+      ? logs.map(l => `
+
+          <tr>
+
+            <td>
+              ${fmtDate(l.created_at)}
+            </td>
+
+            <td>
+              ${l.actor_email || '—'}
+            </td>
+
+            <td>
+              ${l.action}
+            </td>
+
+            <td class="muted">
+
+              ${
+                l.details
+                ? escapeHtml(
+                    JSON.stringify(l.details)
+                  )
+                : '—'
+              }
+
+            </td>
+
+            <td>
+              ${l.ip_address || '—'}
+            </td>
+
+          </tr>
+
+        `).join('')
+
+      : `
+
+          <tr>
+
+            <td
+              colspan="5"
+              class="empty">
+
+              Nema zapisa
+
+            </td>
+
+          </tr>
+
+        `;
+
+  }
+  catch(e){
+
+    toast(e.message);
+
+  }
+
+}
+
+
+function fmtDate(s){
+
+  if(!s)
+    return '—';
+
+
+  const d =
+    new Date(s);
+
+
+  return d.toLocaleString(
+    'bs-BA',
+    {
+      day:'2-digit',
+      month:'2-digit',
+      year:'numeric',
+      hour:'2-digit',
+      minute:'2-digit'
+    }
+  );
+
+}
+
+
+let _spotmapParkingId = null;
+
+async function loadSpotMap(){
+
+  const toolbar = document.getElementById('spotmap-toolbar');
+
+  try{
+
+    if(ME.role === 'manager'){
+
+      document.getElementById('spotmap-title').textContent =
+        `Mapa mjesta — ${ME.parking_naziv || 'moj parking'}`;
+      toolbar.innerHTML = '';
+
+      const spots = await api('/manager/spots');
+      renderSpotGrid(spots);
+
+    } else {
+
+      if(!toolbar.dataset.built){
+        const parkings = await api('/admin/parkings');
+        toolbar.innerHTML = `
+          <select id="spotmap-parking-select" onchange="_spotmapParkingId=this.value; loadSpotMap();">
+            ${parkings.map(p => `<option value="${p.id}">${escapeHtml(p.naziv)}</option>`).join('')}
+          </select>
+        `;
+        toolbar.dataset.built = '1';
+        if(!_spotmapParkingId && parkings.length) _spotmapParkingId = parkings[0].id;
+        document.getElementById('spotmap-parking-select').value = _spotmapParkingId;
+      }
+
+      if(!_spotmapParkingId){
+        document.getElementById('spot-grid').innerHTML = `<div class="empty">Nema parkinga</div>`;
+        return;
+      }
+
+      const [spots, reports] = await Promise.all([
+        api(`/parkings/${_spotmapParkingId}/spots`),
+        api(`/admin/reports?parking_id=${_spotmapParkingId}&status=nova`),
+      ]);
+      const reportsExtra = await api(`/admin/reports?parking_id=${_spotmapParkingId}&status=u_obradi`);
+      const openReports = [...reports, ...reportsExtra];
+      const reportedSpotIds = new Set(openReports.filter(r => r.spot_id).map(r => r.spot_id));
+
+      const merged = spots.map(s => ({
+        ...s,
+        report_status: reportedSpotIds.has(s.id) ? 'nova' : null,
+      }));
+
+      document.getElementById('spotmap-title').textContent =
+        `Mapa mjesta — ${document.getElementById('spotmap-parking-select').selectedOptions[0]?.textContent || ''}`;
+
+      renderSpotGrid(merged);
+
+    }
+
+  }
+  catch(e){
+    toast(e.message);
+  }
+
+}
+
+function renderSpotGrid(spots){
+
+  const grid = document.getElementById('spot-grid');
+
+  if(!spots.length){
+    grid.innerHTML = `<div class="empty">Nema definisanih mjesta za ovaj parking</div>`;
+    return;
+  }
+
+  grid.innerHTML = spots.map(s => {
+    const occupied = !!s.zaueto;
+    const reported = !!s.report_status;
+    const tip = reported
+      ? `Mjesto ${escapeHtml(s.spot_number)} — prijavljen problem${s.report_opis ? ': ' + escapeHtml(s.report_opis) : ''}`
+      : `Mjesto ${escapeHtml(s.spot_number)} — ${occupied ? ('zauzeto' + (s.vehicle_tablice ? ' (' + escapeHtml(s.vehicle_tablice) + ')' : '')) : 'slobodno'}`;
+
+    return `
+      <div class="spot-box ${occupied ? 'occupied' : ''} ${reported ? 'reported' : ''}">
+        ${escapeHtml(s.spot_number)}
+        <span class="tip">${tip}</span>
+      </div>
+    `;
+  }).join('');
+
+}
+
+
+async function loadReports(){
+
+  try{
+
+    document.getElementById('reports-title').textContent =
+      ME.role === 'manager' ? `Prijave problema — ${ME.parking_naziv || 'moj parking'}` : 'Prijave problema';
+
+    const statusFilter = document.getElementById('reports-status-filter').value;
+    const parkingFilterEl = document.getElementById('reports-parking-filter');
+
+    let reports;
+
+    if(ME.role === 'manager'){
+      parkingFilterEl.style.display = 'none';
+      const qs = statusFilter ? `?status=${statusFilter}` : '';
+      reports = await api(`/manager/reports${qs}`);
+    } else {
+      parkingFilterEl.style.display = '';
+      if(!parkingFilterEl.dataset.built){
+        const parkings = await api('/admin/parkings');
+        parkingFilterEl.innerHTML = `<option value="">Svi parkinzi</option>` +
+          parkings.map(p => `<option value="${p.id}">${escapeHtml(p.naziv)}</option>`).join('');
+        parkingFilterEl.dataset.built = '1';
+      }
+      const params = new URLSearchParams();
+      if(statusFilter) params.set('status', statusFilter);
+      if(parkingFilterEl.value) params.set('parking_id', parkingFilterEl.value);
+      reports = await api(`/admin/reports?${params.toString()}`);
+    }
+
+    if(ME.role === 'manager'){
+      const openCount = reports.filter(r => r.status !== 'rijesena').length;
+      _updateReportsBadge(statusFilter ? _reportsOpenCount : openCount);
+    }
+
+    const list = document.getElementById('reports-list');
+
+    list.innerHTML = reports.length
+      ? reports.map(r => `
+          <div class="report-card">
+
+            <div class="top">
+              <div>
+                <b>${escapeHtml(r.ime)} ${escapeHtml(r.prezime)}</b>
+                ${r.spot_number ? `<span style="color:var(--accent);margin-left:8px;">📍 mjesto ${escapeHtml(r.spot_number)}</span>` : ''}
+              </div>
+              <span class="pill pill-${r.status}">${
+                r.status === 'nova' ? 'Nova' : r.status === 'u_obradi' ? 'U obradi' : 'Riješena'
+              }</span>
+            </div>
+
+            <div class="meta">
+              ${ME.role === 'admin' ? `🅿️ ${escapeHtml(r.parking_naziv || '')} · ` : ''}${fmtDate(r.created_at)}
+            </div>
+
+            ${r.opis ? `<div class="desc">${escapeHtml(r.opis)}</div>` : ''}
+
+            ${r.photo_path ? `<img src="${API_BASE.replace(/\/api\/?$/,'')}/${r.photo_path.replace(/^\//,'')}" alt="foto prijave">` : ''}
+
+            ${r.manager_response ? `<div class="desc" style="color:var(--accent);">Odgovor: ${escapeHtml(r.manager_response)}</div>` : ''}
+
+            <div class="actions">
+              <select id="report-status-${r.id}">
+                <option value="nova" ${r.status==='nova'?'selected':''}>Nova</option>
+                <option value="u_obradi" ${r.status==='u_obradi'?'selected':''}>U obradi</option>
+                <option value="rijesena" ${r.status==='rijesena'?'selected':''}>Riješena</option>
+              </select>
+              <button class="btn-secondary" style="width:auto;padding:6px 14px;" onclick="updateReportStatus(${r.id})">
+                Sačuvaj status
+              </button>
+            </div>
+
+            <div class="response-box">
+              <input id="report-response-${r.id}" placeholder="Odgovor korisniku (opciono)...">
+              <button class="btn-primary" style="width:auto;padding:6px 14px;" onclick="sendReportResponse(${r.id})">
+                Pošalji
+              </button>
+            </div>
+
+          </div>
+        `).join('')
+      : `<div class="empty">Nema prijava</div>`;
+
+  }
+  catch(e){
+    toast(e.message);
+  }
+
+}
+
+async function updateReportStatus(reportId){
+  const status = document.getElementById(`report-status-${reportId}`).value;
+  try{
+    await api(`/reports/${reportId}`, { method: 'PUT', body: JSON.stringify({ status }) });
+    toast('Status ažuriran');
+    loadReports();
+    if(document.getElementById('tab-spotmap').style.display !== 'none') loadSpotMap();
+  }
+  catch(e){
+    toast(e.message);
+  }
+}
+
+async function sendReportResponse(reportId){
+  const input = document.getElementById(`report-response-${reportId}`);
+  const manager_response = input.value.trim();
+  if(!manager_response) return;
+  try{
+    await api(`/reports/${reportId}`, { method: 'PUT', body: JSON.stringify({ manager_response }) });
+    toast('Odgovor poslan korisniku');
+    loadReports();
+  }
+  catch(e){
+    toast(e.message);
+  }
+}
+
+
+let _managersCache = [];
+
+async function loadManagers(){
+
+  try{
+
+    _managersCache = await api('/admin/managers');
+
+    document.getElementById('managers-table').innerHTML =
+      _managersCache.length
+      ? _managersCache.map(m => `
+          <tr>
+            <td>${escapeHtml(m.ime)} ${escapeHtml(m.prezime)}</td>
+            <td>${escapeHtml(m.email)}</td>
+            <td>${escapeHtml(m.parking_naziv || '—')}</td>
+            <td><span class="pill ${m.status==='active' ? 'pill-rijesena' : 'pill-nova'}">${m.status==='active' ? 'Aktivan' : 'Blokiran'}</span></td>
+            <td>${fmtDate(m.created_at)}</td>
+            <td>
+              <button class="btn-secondary" style="width:auto;padding:5px 12px;font-size:12px;" onclick="openManagerModal(${m.id})">Uredi</button>
+              <button class="btn-secondary" style="width:auto;padding:5px 12px;font-size:12px;color:var(--red);" onclick="deleteManager(${m.id})">Deaktiviraj</button>
+            </td>
+          </tr>
+        `).join('')
+      : `<tr><td colspan="6" class="empty">Još nema dodijeljenih upravnika</td></tr>`;
+
+  }
+  catch(e){
+    toast(e.message);
+  }
+
+}
+
+async function openManagerModal(id){
+
+  document.getElementById('manager-modal').classList.add('active');
+  document.getElementById('mm-id').value = id || '';
+  document.getElementById('mm-ime').value = '';
+  document.getElementById('mm-prezime').value = '';
+  document.getElementById('mm-email').value = '';
+  document.getElementById('mm-telefon').value = '';
+  document.getElementById('mm-lozinka').value = '';
+
+  const statusEl = document.getElementById('mm-status');
+  const pwHint = document.getElementById('mm-lozinka-hint');
+
+  const parkingSel = document.getElementById('mm-parking');
+  if(!parkingSel.dataset.built){
+    const parkings = await api('/admin/parkings');
+    parkingSel.innerHTML = parkings.map(p => `<option value="${p.id}">${escapeHtml(p.naziv)}</option>`).join('');
+    parkingSel.dataset.built = '1';
+  }
+
+  if(id){
+    const m = _managersCache.find(x => x.id === id);
+    document.getElementById('manager-modal-title').textContent = 'Uredi upravnika';
+    document.getElementById('mm-ime').value = m.ime;
+    document.getElementById('mm-prezime').value = m.prezime;
+    document.getElementById('mm-email').value = m.email;
+    document.getElementById('mm-email').disabled = true;
+    document.getElementById('mm-telefon').value = m.telefon || '';
+    parkingSel.value = m.parking_id;
+    statusEl.value = m.status;
+    statusEl.style.display = '';
+    pwHint.style.display = '';
+  } else {
+    document.getElementById('manager-modal-title').textContent = 'Novi upravnik';
+    document.getElementById('mm-email').disabled = false;
+    statusEl.style.display = 'none';
+    pwHint.style.display = 'none';
+  }
+
+}
+
+function closeManagerModal(){
+  document.getElementById('manager-modal').classList.remove('active');
+}
+
+async function saveManager(){
+
+  const id = document.getElementById('mm-id').value;
+  const payload = {
+    ime: document.getElementById('mm-ime').value.trim(),
+    prezime: document.getElementById('mm-prezime').value.trim(),
+    telefon: document.getElementById('mm-telefon').value.trim() || null,
+    parking_id: document.getElementById('mm-parking').value,
+  };
+  const lozinka = document.getElementById('mm-lozinka').value;
+
+  if(!id) payload.email = document.getElementById('mm-email').value.trim();
+  if(lozinka) payload.lozinka = lozinka;
+  if(id) payload.status = document.getElementById('mm-status').value;
+
+  if(!id && !lozinka){
+    toast('Lozinka je obavezna za novog upravnika');
+    return;
+  }
+
+  try{
+    if(id){
+      await api(`/admin/managers/${id}`, { method: 'PUT', body: JSON.stringify(payload) });
+    } else {
+      await api('/admin/managers', { method: 'POST', body: JSON.stringify(payload) });
+    }
+    toast('Upravnik sačuvan');
+    closeManagerModal();
+    loadManagers();
+  }
+  catch(e){
+    toast(e.message);
+  }
+
+}
+
+async function deleteManager(id){
+  if(!confirm('Deaktivirati ovog upravnika? Neće se moći prijaviti na panel dok se ponovo ne aktivira.')) return;
+  try{
+    await api(`/admin/managers/${id}`, { method: 'DELETE' });
+    toast('Upravnik deaktiviran');
+    loadManagers();
+  }
+  catch(e){
+    toast(e.message);
+  }
+}
+
+let _chatThreads = [];
+let _activeThread = null;
+
+async function loadChatThreads(){
+
+  try{
+
+    document.getElementById('chat-title').textContent =
+      ME.role === 'manager' ? `Chat — ${ME.parking_naziv || 'moj parking'}` : 'Chat sa korisnicima';
+    document.getElementById('chat-subtitle').textContent =
+      ME.role === 'manager'
+        ? 'Poruke korisnika koji su pisali u chat tvog parkinga — odgovor stiže korisniku istog trena.'
+        : 'Ovdje admin vidi SVE poruke koje su korisnici poslali iz aplikacije (po parkingu) i može im stvarno odgovoriti — odgovor stiže korisniku istog trena preko notifikacija.';
+
+    _chatThreads = ME.role === 'manager'
+      ? await api('/manager/chat/threads')
+      : await api('/admin/chat/threads');
+
+    const totalUnread =
+      _chatThreads.reduce((sum, t) => sum + (t.unread_count || 0), 0);
+
+    _updateChatBadge(totalUnread);
+
+    document.getElementById('chat-threads').innerHTML =
+      _chatThreads.length
+      ? _chatThreads.map(t => `
+          <div
+            class="chat-thread-item${_activeThread && _activeThread.user_id===t.user_id && _activeThread.parking_id===t.parking_id ? ' active' : ''}"
+            onclick="openChatThread(${t.user_id}, ${t.parking_id})">
+
+            <div class="name">
+              <span>${escapeHtml(t.ime)} ${escapeHtml(t.prezime)}</span>
+              ${t.unread_count > 0 ? `<span class="chat-unread-dot">${t.unread_count}</span>` : ''}
+            </div>
+
+            ${ME.role === 'admin' ? `<div class="parking">🅿️ ${escapeHtml(t.parking_naziv)}</div>` : ''}
+
+            <div class="preview">${escapeHtml(t.last_message || '')}</div>
+
+          </div>
+        `).join('')
+      : `<div class="empty">Još nema razgovora</div>`;
+
+  }
+  catch(e){
+    toast(e.message);
+  }
+
+}
+
+let _currentChatUser = null;
+let _currentChatParking = null;
+
+async function openChatThread(userId, parkingId){
+
+  _activeThread = { user_id: userId, parking_id: parkingId };
+  _currentChatUser = userId;
+  _currentChatParking = parkingId;
+
+  document
+    .querySelectorAll('.chat-thread-item')
+    .forEach((el, i) => {
+      const t = _chatThreads[i];
+      if(!t) return;
+      el.classList.toggle('active', t.user_id === userId && t.parking_id === parkingId);
+    });
+
+  try{
+
+    const data = ME.role === 'manager'
+      ? await api(`/manager/chat/${userId}`)
+      : await api(`/admin/chat/${userId}/${parkingId}`);
+
+    const view = document.getElementById('chat-thread-view');
+
+    view.innerHTML = `
+      <div class="chat-thread-header">
+        ${escapeHtml(data.user.ime)} ${escapeHtml(data.user.prezime)}
+        <div class="sub">${escapeHtml(data.user.email)}${ME.role === 'admin' ? ' · 🅿️ ' + escapeHtml(data.parking?.naziv || '') : ''}</div>
+      </div>
+
+      <div class="chat-messages" id="chat-messages">
+        ${
+          data.messages.map(m => `
+            <div class="chat-bubble ${m.sender === 'user' ? 'from-user' : 'from-parking'}">
+              ${escapeHtml(m.poruka)}
+              <div class="meta">${fmtDate(m.created_at)}</div>
+            </div>
+          `).join('')
+        }
+      </div>
+
+      <div class="chat-reply-box">
+        <input
+          id="chat-reply-input"
+          type="text"
+          placeholder="Napiši odgovor korisniku..."
+          onkeydown="if(event.key==='Enter') sendChatReply()">
+
+        <button class="btn-primary" onclick="sendChatReply()">
+          Pošalji
+        </button>
+      </div>
+    `;
+
+    const msgBox = document.getElementById('chat-messages');
+    msgBox.scrollTop = msgBox.scrollHeight;
+
+    loadChatThreads();
+
+  }
+  catch(e){
+    toast(e.message);
+  }
+
+}
+
+async function sendChatReply(){
+
+  if(!_activeThread) return;
+
+  const input = document.getElementById('chat-reply-input');
+  const poruka = input.value.trim();
+  if(!poruka) return;
+
+  try{
+
+    if(ME.role === 'manager'){
+      await api(`/manager/chat/${_activeThread.user_id}`, {
+        method: 'POST',
+        body: JSON.stringify({ poruka })
+      });
+    } else {
+      await api(`/admin/chat/${_activeThread.user_id}/${_activeThread.parking_id}`, {
+        method: 'POST',
+        body: JSON.stringify({ poruka })
+      });
+    }
+
+    input.value = '';
+    await openChatThread(_activeThread.user_id, _activeThread.parking_id);
+
+  }
+  catch(e){
+    toast(e.message);
+  }
+
+}
+
+
+function escapeHtml(s){
+
+  return s.replace(
+    /[&<>"']/g,
+    c =>
+      ({
+        '&':'&amp;',
+        '<':'&lt;',
+        '>':'&gt;',
+        '"':'&quot;',
+        "'":'&#39;'
+      }[c])
+  );
+
+}
+
+
+(async function initSession(){
+
+  if(
+    !(TOKEN &&
+      ME &&
+      ME.role === 'admin')
+  ){
+
+    return;
+
+  }
+
+
+  try{
+
+    await api('/auth/me');
+
+    boot();
+
+  }
+  catch(e){
+
+    
+  }
+
+})();
+
+</script>
+
+</body>
+</html>

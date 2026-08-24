@@ -1,0 +1,63 @@
+# Environment files and secrets
+.env
+.env.*
+!.env.example
+!docker/.env.example
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+.venv/
+venv/
+env/
+smart_parking_backend/uploads/*
+!smart_parking_backend/uploads/.gitkeep
+
+# Flutter / Dart
+smart_parking_system/build/
+smart_parking_system/.dart_tool/
+smart_parking_system/.flutter-plugins
+smart_parking_system/.flutter-plugins-dependencies
+smart_parking_system/.pub-cache/
+smart_parking_system/.pub/
+smart_parking_system/*.iml
+
+# Android
+smart_parking_system/android/.gradle/
+smart_parking_system/android/.kotlin/
+smart_parking_system/android/local.properties
+smart_parking_system/android/**/*.iml
+smart_parking_system/android/key.properties
+smart_parking_system/android/app/*.jks
+smart_parking_system/android/app/*.keystore
+
+# iOS / macOS
+smart_parking_system/ios/Pods/
+smart_parking_system/ios/.symlinks/
+smart_parking_system/ios/Flutter/Flutter.framework
+smart_parking_system/ios/Flutter/Flutter.podspec
+smart_parking_system/ios/Flutter/App.framework
+smart_parking_system/macos/Flutter/ephemeral/
+smart_parking_system/**/*.xcuserstate
+smart_parking_system/**/xcuserdata/
+
+# Windows / Linux desktop builds
+smart_parking_system/windows/flutter/ephemeral/
+smart_parking_system/linux/flutter/ephemeral/
+
+# Docker volumes mounted at runtime
+docker/mysql-data/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
